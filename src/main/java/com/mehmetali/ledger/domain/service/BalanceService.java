@@ -3,7 +3,6 @@ package com.mehmetali.ledger.domain.service;
 import com.mehmetali.ledger.api.dto.BalanceResponse;
 import com.mehmetali.ledger.domain.model.Account;
 import com.mehmetali.ledger.domain.repository.AccountRepository;
-import com.mehmetali.ledger.domain.repository.LedgerEntryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -18,8 +17,8 @@ public class BalanceService {
 
     private static final String KEY_PREFIX = "account:balance:";
 
-    private final LedgerEntryRepository ledgerEntryRepository;
     private final AccountRepository accountRepository;
+    private final SnapshotService snapshotService;
     private final StringRedisTemplate redisTemplate;
 
     public BalanceResponse getBalance(UUID accountId) {
@@ -39,14 +38,15 @@ public class BalanceService {
             );
         }
 
-        BigDecimal balance = ledgerEntryRepository.calculateBalance(accountId);
+        // Cache miss: snapshot + delta ile hesapla (tam SUM değil)
+        BigDecimal balance = snapshotService.calculateHybridBalance(accountId);
         redisTemplate.opsForValue().set(key, balance.toPlainString());
 
         return new BalanceResponse(accountId, balance, account.getCurrency(), "DB", LocalDateTime.now());
     }
 
     public void updateCache(UUID accountId) {
-        BigDecimal balance = ledgerEntryRepository.calculateBalance(accountId);
+        BigDecimal balance = snapshotService.calculateHybridBalance(accountId);
         redisTemplate.opsForValue().set(KEY_PREFIX + accountId, balance.toPlainString());
     }
 

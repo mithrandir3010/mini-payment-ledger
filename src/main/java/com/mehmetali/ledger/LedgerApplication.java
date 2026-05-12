@@ -6,6 +6,7 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 @SpringBootApplication
 @EnableTransactionManagement
+@org.springframework.scheduling.annotation.EnableScheduling
 public class LedgerApplication {
 
     public static void main(String[] args) {
