@@ -6,7 +6,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.math.BigDecimal;
 import java.util.UUID;
 
 @RestController
@@ -18,7 +17,6 @@ public class AccountController {
 
     @GetMapping("/{id}/balance")
     public ResponseEntity<BalanceResponse> getBalance(@PathVariable UUID id) {
-        BigDecimal balance = ledgerService.getBalance(id);
-        return ResponseEntity.ok(new BalanceResponse(id, balance, null));
+        return ResponseEntity.ok(ledgerService.getBalanceResponse(id));
     }
 }
