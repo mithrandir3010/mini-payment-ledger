@@ -1,6 +1,7 @@
 package com.mehmetali.ledger.domain.service;
 
 import com.mehmetali.ledger.api.dto.BalanceResponse;
+import com.mehmetali.ledger.api.dto.LedgerEntryResponse;
 import com.mehmetali.ledger.domain.model.Account;
 import com.mehmetali.ledger.domain.model.EntryType;
 import com.mehmetali.ledger.domain.model.LedgerEntry;
@@ -8,6 +9,8 @@ import com.mehmetali.ledger.domain.model.Transaction;
 import com.mehmetali.ledger.domain.repository.AccountRepository;
 import com.mehmetali.ledger.domain.repository.LedgerEntryRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -32,21 +35,35 @@ public class LedgerService {
     }
 
     public void createDoubleEntry(Transaction transaction) {
-        LedgerEntry debit = new LedgerEntry();
-        debit.setTransaction(transaction);
-        debit.setAccountId(transaction.getFromAccountId());
-        debit.setEntryType(EntryType.DEBIT);
-        debit.setAmount(transaction.getAmount());
-        debit.setCurrency(transaction.getCurrency());
+        save(transaction, transaction.getFromAccountId(), EntryType.DEBIT);
+        save(transaction, transaction.getToAccountId(), EntryType.CREDIT);
+    }
 
-        LedgerEntry credit = new LedgerEntry();
-        credit.setTransaction(transaction);
-        credit.setAccountId(transaction.getToAccountId());
-        credit.setEntryType(EntryType.CREDIT);
-        credit.setAmount(transaction.getAmount());
-        credit.setCurrency(transaction.getCurrency());
+    public void createReverseEntry(Transaction original, Transaction reversal) {
+        save(reversal, original.getToAccountId(), EntryType.DEBIT);
+        save(reversal, original.getFromAccountId(), EntryType.CREDIT);
+    }
 
-        ledgerEntryRepository.save(debit);
-        ledgerEntryRepository.save(credit);
+    public Page<LedgerEntryResponse> getLedger(UUID accountId, Pageable pageable) {
+        return ledgerEntryRepository
+                .findByAccountIdOrderByCreatedAtDesc(accountId, pageable)
+                .map(e -> new LedgerEntryResponse(
+                        e.getId(),
+                        e.getTransaction().getId(),
+                        e.getEntryType(),
+                        e.getAmount(),
+                        e.getCurrency(),
+                        e.getCreatedAt()
+                ));
+    }
+
+    private void save(Transaction transaction, UUID accountId, EntryType type) {
+        LedgerEntry entry = new LedgerEntry();
+        entry.setTransaction(transaction);
+        entry.setAccountId(accountId);
+        entry.setEntryType(type);
+        entry.setAmount(transaction.getAmount());
+        entry.setCurrency(transaction.getCurrency());
+        ledgerEntryRepository.save(entry);
     }
 }

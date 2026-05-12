@@ -69,4 +69,18 @@ public class PaymentController {
 
         return ResponseEntity.ok(response);
     }
+
+    @PostMapping("/{id}/reverse")
+    public ResponseEntity<PaymentResponse> reversePayment(@PathVariable UUID id) {
+        Transaction reversal = paymentService.reversePayment(id);
+
+        PaymentResponse response = new PaymentResponse(
+                reversal.getId(),
+                reversal.getStatus().name(),
+                "Payment reversed successfully.",
+                "/api/v1/payments/" + reversal.getId()
+        );
+
+        return ResponseEntity.ok(response);
+    }
 }
