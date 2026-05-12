@@ -1,0 +1,22 @@
+# Maven
+target/
+*.class
+*.jar
+*.war
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.DS_Store
+
+# Env
+.env
+*.env.local
+
+# Logs
+*.log
+logs/
+
+# Spring Boot
+spring-shell.log
