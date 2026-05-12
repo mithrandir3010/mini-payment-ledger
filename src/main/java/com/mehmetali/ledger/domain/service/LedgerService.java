@@ -31,7 +31,7 @@ public class LedgerService {
         Account account = accountRepository.findById(accountId)
                 .orElseThrow(() -> new IllegalArgumentException("Account not found: " + accountId));
         BigDecimal balance = ledgerEntryRepository.calculateBalance(accountId);
-        return new BalanceResponse(accountId, balance, account.getCurrency());
+        return new BalanceResponse(accountId, balance, account.getCurrency(), "DB", java.time.LocalDateTime.now());
     }
 
     public void createDoubleEntry(Transaction transaction) {

@@ -2,6 +2,7 @@ package com.mehmetali.ledger.api;
 
 import com.mehmetali.ledger.api.dto.BalanceResponse;
 import com.mehmetali.ledger.api.dto.LedgerEntryResponse;
+import com.mehmetali.ledger.domain.service.BalanceService;
 import com.mehmetali.ledger.domain.service.LedgerService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -17,11 +18,12 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class AccountController {
 
+    private final BalanceService balanceService;
     private final LedgerService ledgerService;
 
     @GetMapping("/{id}/balance")
     public ResponseEntity<BalanceResponse> getBalance(@PathVariable UUID id) {
-        return ResponseEntity.ok(ledgerService.getBalanceResponse(id));
+        return ResponseEntity.ok(balanceService.getBalance(id));
     }
 
     @GetMapping("/{id}/ledger")
