@@ -5,6 +5,8 @@ import com.mehmetali.ledger.domain.model.LedgerEntry;
 import com.mehmetali.ledger.domain.model.Transaction;
 import com.mehmetali.ledger.domain.model.TransactionStatus;
 import com.mehmetali.ledger.domain.repository.AccountRepository;
+import com.mehmetali.ledger.domain.repository.AccountSnapshotRepository;
+import com.mehmetali.ledger.domain.repository.AuditLogRepository;
 import com.mehmetali.ledger.domain.repository.LedgerEntryRepository;
 import com.mehmetali.ledger.domain.repository.TransactionRepository;
 import com.mehmetali.ledger.domain.service.LedgerService;
@@ -77,6 +79,12 @@ class PaymentServiceTest {
     LedgerEntryRepository ledgerEntryRepository;
 
     @Autowired
+    AuditLogRepository auditLogRepository;
+
+    @Autowired
+    AccountSnapshotRepository snapshotRepository;
+
+    @Autowired
     IdempotencyService idempotencyService;
 
     UUID aliId;
@@ -84,11 +92,21 @@ class PaymentServiceTest {
 
     @BeforeEach
     void setUp() {
+        // FK order: audit_log + ledger_entries reference transactions; snapshots reference accounts
+        auditLogRepository.deleteAll();
         ledgerEntryRepository.deleteAll();
+        snapshotRepository.deleteAll();
         transactionRepository.deleteAll();
         accountRepository.deleteAll();
 
         doNothing().when(eventProducer).publish(any());
+
+        // bank account is the source for seeding — never used as sender in real tests
+        Account bank = new Account();
+        bank.setOwnerId(UUID.randomUUID());
+        bank.setCurrency("TRY");
+        bank.setStatus("ACTIVE");
+        UUID bankId = accountRepository.save(bank).getId();
 
         Account ali = new Account();
         ali.setOwnerId(UUID.randomUUID());
@@ -102,10 +120,10 @@ class PaymentServiceTest {
         ayse.setStatus("ACTIVE");
         ayseId = accountRepository.save(ayse).getId();
 
-        // Ali'ye 1000 TRY başlangıç bakiyesi
+        // Seed: bank → Ali: DEBIT on bank, CREDIT +1000 on Ali
         Transaction seed = new Transaction();
         seed.setIdempotencyKey("seed-" + UUID.randomUUID());
-        seed.setFromAccountId(aliId);
+        seed.setFromAccountId(bankId);
         seed.setToAccountId(aliId);
         seed.setAmount(new BigDecimal("1000.00"));
         seed.setCurrency("TRY");
@@ -142,7 +160,7 @@ class PaymentServiceTest {
         BigDecimal aliBalance = ledgerService.getBalance(aliId);
         BigDecimal ayseBalance = ledgerService.getBalance(ayseId);
 
-        // Ali: 1000 (seed credit) + 1000 (seed debit, same acct) - 250 = 750
+        // Ali: +1000 (seed CREDIT from bank) - 250 (DEBIT to Ayse) = 750
         assertThat(aliBalance).isEqualByComparingTo("750.00");
         assertThat(ayseBalance).isEqualByComparingTo("250.00");
     }
