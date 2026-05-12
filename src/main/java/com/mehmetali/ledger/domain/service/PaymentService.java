@@ -3,6 +3,8 @@ package com.mehmetali.ledger.domain.service;
 import com.mehmetali.ledger.domain.model.Transaction;
 import com.mehmetali.ledger.domain.model.TransactionStatus;
 import com.mehmetali.ledger.domain.repository.TransactionRepository;
+import com.mehmetali.ledger.messaging.PaymentEvent;
+import com.mehmetali.ledger.messaging.PaymentEventProducer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,21 +18,39 @@ public class PaymentService {
 
     private final TransactionRepository transactionRepository;
     private final LedgerService ledgerService;
+    private final PaymentEventProducer eventProducer;
 
     @Transactional
     public Transaction initiatePayment(Transaction transaction) {
         transaction.setStatus(TransactionStatus.PENDING);
         Transaction saved = transactionRepository.save(transaction);
 
-        BigDecimal senderBalance = ledgerService.getBalance(saved.getFromAccountId());
-        if (senderBalance.compareTo(saved.getAmount()) < 0) {
-            throw new IllegalStateException("Insufficient balance for account: " + saved.getFromAccountId());
+        eventProducer.publish(new PaymentEvent(
+                saved.getId(),
+                saved.getFromAccountId(),
+                saved.getToAccountId(),
+                saved.getAmount(),
+                saved.getCurrency()
+        ));
+
+        return saved;
+    }
+
+    @Transactional
+    public void processPayment(UUID transactionId) {
+        Transaction transaction = transactionRepository.findById(transactionId)
+                .orElseThrow(() -> new IllegalArgumentException("Transaction not found: " + transactionId));
+
+        BigDecimal senderBalance = ledgerService.getBalance(transaction.getFromAccountId());
+        if (senderBalance.compareTo(transaction.getAmount()) < 0) {
+            transaction.setStatus(TransactionStatus.FAILED);
+            transactionRepository.save(transaction);
+            return;
         }
 
-        ledgerService.createDoubleEntry(saved);
-
-        saved.setStatus(TransactionStatus.SETTLED);
-        return transactionRepository.save(saved);
+        ledgerService.createDoubleEntry(transaction);
+        transaction.setStatus(TransactionStatus.SETTLED);
+        transactionRepository.save(transaction);
     }
 
     public Transaction getPayment(UUID id) {

@@ -36,11 +36,11 @@ public class PaymentController {
         PaymentResponse response = new PaymentResponse(
                 result.getId(),
                 result.getStatus().name(),
-                "Payment processed successfully.",
+                "Payment accepted, processing asynchronously.",
                 "/api/v1/payments/" + result.getId()
         );
 
-        return ResponseEntity.ok(response);
+        return ResponseEntity.accepted().body(response);
     }
 
     @GetMapping("/{id}")
