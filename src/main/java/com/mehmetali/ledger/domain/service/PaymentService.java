@@ -13,6 +13,7 @@ import com.mehmetali.ledger.domain.repository.TransactionRepository;
 import com.mehmetali.ledger.domain.statemachine.TransactionStateMachine;
 import com.mehmetali.ledger.messaging.PaymentEvent;
 import com.mehmetali.ledger.messaging.PaymentEventProducer;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,6 +31,7 @@ public class PaymentService {
     private final LedgerService ledgerService;
     private final SnapshotService snapshotService;
     private final PaymentEventProducer eventProducer;
+    private final MeterRegistry meterRegistry;
 
     @Transactional
     public Transaction initiatePayment(Transaction transaction) {
@@ -161,6 +163,9 @@ public class PaymentService {
         tx.setStatus(to);
         transactionRepository.save(tx);
         audit(tx.getId(), from, to, reason);
+        if (to == TransactionStatus.SETTLED || to == TransactionStatus.FAILED) {
+            meterRegistry.counter("payments.processed", "status", to.name().toLowerCase()).increment();
+        }
     }
 
     private void audit(UUID txId, TransactionStatus from, TransactionStatus to, String reason) {
