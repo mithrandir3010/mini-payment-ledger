@@ -1,5 +1,6 @@
 package com.mehmetali.ledger.infrastructure;
 
+import com.mehmetali.ledger.domain.model.AccountStatus;
 import com.mehmetali.ledger.domain.repository.AccountRepository;
 import com.mehmetali.ledger.domain.service.SnapshotService;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +23,7 @@ public class SnapshotScheduler {
     @Scheduled(cron = "0 0 2 * * *")
     public void dailySnapshot() {
         log.info("Daily snapshot job started");
-        accountRepository.findAll().forEach(account -> {
+        accountRepository.findByStatus(AccountStatus.ACTIVE).forEach(account -> {
             try {
                 snapshotService.takeSnapshot(account.getId());
             } catch (Exception e) {

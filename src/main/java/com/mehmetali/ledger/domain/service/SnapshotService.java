@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -36,7 +37,9 @@ public class SnapshotService {
      * 4. Sonuç: snapshot'a dahil edilmesi gereken hiçbir entry kaçmaz.
      *    created_at > snapshotted_at olan tüm yeni entryler delta sorgusuna girer.
      */
-    @Transactional(isolation = Isolation.SERIALIZABLE)
+    // REQUIRES_NEW suspends any outer transaction so SERIALIZABLE isolation is guaranteed,
+    // and the snapshot sees all committed entries from the just-finished payment.
+    @Transactional(isolation = Isolation.SERIALIZABLE, propagation = Propagation.REQUIRES_NEW)
     public void takeSnapshot(UUID accountId) {
         LocalDateTime snapAt = LocalDateTime.now();
         BigDecimal balance = ledgerEntryRepository.calculateBalance(accountId);

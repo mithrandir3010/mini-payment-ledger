@@ -11,7 +11,30 @@
       "Bash(git push *)",
       "Bash(git commit *)",
       "Bash(chmod +x /Users/mali/projects/mini-payment-ledger/scripts/seed-data.sh)",
-      "Bash(chmod +x /Users/mali/projects/mini-payment-ledger/scripts/create-topics.sh)"
+      "Bash(chmod +x /Users/mali/projects/mini-payment-ledger/scripts/create-topics.sh)",
+      "Bash(mvn checkstyle:check -B -q)",
+      "Bash(mvn checkstyle:check -B)",
+      "Bash(gh run *)",
+      "Bash(mvn test *)",
+      "Bash(mvn clean *)",
+      "Bash(mvn -version)",
+      "Bash(java -version)",
+      "Bash(mvn dependency:resolve -Dartifact=org.projectlombok:lombok -B --no-transfer-progress)",
+      "Bash(/usr/libexec/java_home -v 21)",
+      "Bash(JAVA_HOME=$\\(/usr/libexec/java_home -v 21\\) mvn clean test -Dtest=PaymentServiceTest -B --no-transfer-progress)",
+      "Bash(JAVA_HOME=$\\(/usr/libexec/java_home -v 21\\) mvn checkstyle:check -B --no-transfer-progress)",
+      "Bash(mvn compile *)",
+      "Read(//opt/homebrew/Cellar/openjdk/**)",
+      "Read(//opt/homebrew/Cellar/openjdk@21/**)",
+      "Bash(mvn dependency:tree)",
+      "Bash(JAVA_HOME=/opt/homebrew/Cellar/openjdk@21/21.0.11/libexec/openjdk.jdk/Contents/Home mvn clean compile -q)",
+      "Bash(git stash *)",
+      "Bash(JAVA_HOME=/opt/homebrew/Cellar/openjdk@21/21.0.11/libexec/openjdk.jdk/Contents/Home mvn test -pl . --no-transfer-progress)",
+      "Bash(JAVA_HOME=/opt/homebrew/Cellar/openjdk@21/21.0.11/libexec/openjdk.jdk/Contents/Home mvn test --no-transfer-progress)",
+      "Bash(JAVA_HOME=/opt/homebrew/Cellar/openjdk@21/21.0.11/libexec/openjdk.jdk/Contents/Home mvn clean test-compile --no-transfer-progress)",
+      "Bash(JAVA_HOME=/opt/homebrew/Cellar/openjdk@21/21.0.11/libexec/openjdk.jdk/Contents/Home mvn checkstyle:check --no-transfer-progress)",
+      "Bash(JAVA_HOME=/opt/homebrew/Cellar/openjdk@21/21.0.11/libexec/openjdk.jdk/Contents/Home mvn clean test-compile checkstyle:check --no-transfer-progress)",
+      "Bash(git reset *)"
     ]
   }
 }

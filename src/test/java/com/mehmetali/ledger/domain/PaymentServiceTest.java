@@ -1,6 +1,7 @@
 package com.mehmetali.ledger.domain;
 
 import com.mehmetali.ledger.domain.model.Account;
+import com.mehmetali.ledger.domain.model.AccountStatus;
 import com.mehmetali.ledger.domain.model.LedgerEntry;
 import com.mehmetali.ledger.domain.model.Transaction;
 import com.mehmetali.ledger.domain.model.TransactionStatus;
@@ -105,19 +106,19 @@ class PaymentServiceTest {
         Account bank = new Account();
         bank.setOwnerId(UUID.randomUUID());
         bank.setCurrency("TRY");
-        bank.setStatus("ACTIVE");
+        bank.setStatus(AccountStatus.ACTIVE);
         UUID bankId = accountRepository.save(bank).getId();
 
         Account ali = new Account();
         ali.setOwnerId(UUID.randomUUID());
         ali.setCurrency("TRY");
-        ali.setStatus("ACTIVE");
+        ali.setStatus(AccountStatus.ACTIVE);
         aliId = accountRepository.save(ali).getId();
 
         Account ayse = new Account();
         ayse.setOwnerId(UUID.randomUUID());
         ayse.setCurrency("TRY");
-        ayse.setStatus("ACTIVE");
+        ayse.setStatus(AccountStatus.ACTIVE);
         ayseId = accountRepository.save(ayse).getId();
 
         // Seed: bank → Ali: DEBIT on bank, CREDIT +1000 on Ali

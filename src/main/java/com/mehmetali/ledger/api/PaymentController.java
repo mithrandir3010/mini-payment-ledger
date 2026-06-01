@@ -71,16 +71,27 @@ public class PaymentController {
     }
 
     @PostMapping("/{id}/reverse")
-    public ResponseEntity<PaymentResponse> reversePayment(@PathVariable UUID id) {
-        Transaction reversal = paymentService.reversePayment(id);
+    public ResponseEntity<PaymentResponse> reversePayment(
+            @PathVariable UUID id,
+            @RequestHeader("Idempotency-Key") String idempotencyKey) throws JsonProcessingException {
+
+        var cached = idempotencyService.getCachedResponse(idempotencyKey);
+        if (cached.isPresent()) {
+            return ResponseEntity.accepted()
+                    .body(objectMapper.readValue(cached.get(), PaymentResponse.class));
+        }
+
+        Transaction reversal = paymentService.reversePayment(id, idempotencyKey);
 
         PaymentResponse response = new PaymentResponse(
                 reversal.getId(),
                 reversal.getStatus().name(),
-                "Payment reversed successfully.",
+                "Reversal accepted, processing asynchronously.",
                 "/api/v1/payments/" + reversal.getId()
         );
 
-        return ResponseEntity.ok(response);
+        idempotencyService.saveResponse(idempotencyKey, objectMapper.writeValueAsString(response));
+
+        return ResponseEntity.accepted().body(response);
     }
 }

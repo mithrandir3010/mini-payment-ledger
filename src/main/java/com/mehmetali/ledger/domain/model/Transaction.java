@@ -41,6 +41,13 @@ public class Transaction {
     @Column(nullable = false, length = 20)
     private TransactionStatus status = TransactionStatus.PENDING;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "transaction_type", nullable = false, length = 10)
+    private TransactionType transactionType = TransactionType.PAYMENT;
+
+    @Column(name = "original_transaction_id")
+    private UUID originalTransactionId;
+
     private String description;
 
     @OneToMany(mappedBy = "transaction", cascade = CascadeType.ALL, orphanRemoval = true)

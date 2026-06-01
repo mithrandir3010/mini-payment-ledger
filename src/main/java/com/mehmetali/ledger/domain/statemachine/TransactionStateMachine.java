@@ -1,5 +1,6 @@
 package com.mehmetali.ledger.domain.statemachine;
 
+import com.mehmetali.ledger.api.exception.InvalidStateTransitionException;
 import com.mehmetali.ledger.domain.model.TransactionStatus;
 
 import java.util.Map;
@@ -17,8 +18,7 @@ public class TransactionStateMachine {
 
     public static void validate(TransactionStatus from, TransactionStatus to) {
         if (!ALLOWED.getOrDefault(from, Set.of()).contains(to)) {
-            throw new IllegalStateException(
-                    "Invalid transition: " + from + " -> " + to);
+            throw new InvalidStateTransitionException(from.name(), to.name());
         }
     }
 }

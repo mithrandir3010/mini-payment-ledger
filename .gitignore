@@ -4,6 +4,9 @@ target/
 *.jar
 *.war
 
+# Local AI / assistant notes (not shared)
+CLAUDE.md
+
 # IDE
 .idea/
 *.iml

@@ -39,9 +39,10 @@ public class LedgerService {
         save(transaction, transaction.getToAccountId(), EntryType.CREDIT);
     }
 
-    public void createReverseEntry(Transaction original, Transaction reversal) {
-        save(reversal, original.getToAccountId(), EntryType.DEBIT);
-        save(reversal, original.getFromAccountId(), EntryType.CREDIT);
+    // reversal.fromAccountId = original sender (receives credit), reversal.toAccountId = original receiver (gets debited)
+    public void createReverseEntry(Transaction reversal) {
+        save(reversal, reversal.getToAccountId(), EntryType.DEBIT);
+        save(reversal, reversal.getFromAccountId(), EntryType.CREDIT);
     }
 
     public Page<LedgerEntryResponse> getLedger(UUID accountId, Pageable pageable) {
