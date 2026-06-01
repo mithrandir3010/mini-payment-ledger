@@ -11,7 +11,8 @@ A production-grade, event-driven payment processing system built as a fintech po
 | Database | PostgreSQL 16 (Flyway migrations V1–V7) |
 | Cache / Idempotency | Redis 7 |
 | Resilience | Spring Retry, Dead Letter Queue |
-| Observability | Spring Actuator, Micrometer |
+| Observability | Spring Actuator, Micrometer, Prometheus, Grafana, OpenTelemetry |
+| API Docs | springdoc-openapi (Swagger UI) |
 | Infrastructure | Docker Compose, AWS ECS (prod) |
 
 ## Architecture
@@ -115,15 +116,36 @@ Invalid transitions throw `InvalidStateTransitionException` → HTTP 409. All tr
 | `409` | Invalid state transition |
 | `422` | Validation failure (amount, currency, self-transfer) |
 
+## Observability
+
+### Endpoints
+
+| Tool | URL | Credentials |
+|---|---|---|
+| Swagger UI | `http://localhost:8080/swagger-ui.html` | — |
+| Prometheus scrape | `http://localhost:8080/actuator/prometheus` | — |
+| Grafana | `http://localhost:3000` | admin / admin |
+| Jaeger (traces) | `http://localhost:16686` | — |
+
+### Custom Metrics
+
+| Metric | Tags | Description |
+|---|---|---|
+| `payments.initiated` | `idempotency=hit\|miss` | Counts every POST /payments call |
+| `payments.processed` | `status=settled\|failed` | Counts terminal state transitions in LedgerWriter |
+
+Prometheus datasource is auto-provisioned in Grafana — no manual setup needed. Every HTTP request is traced end-to-end via OpenTelemetry and exported to Jaeger over OTLP (port 4318).
+
 ## Running Locally
 
-> **Note:** Maven must use JDK 21. Prefix `mvn` commands with:
-> ```bash
-> JAVA_HOME=/opt/homebrew/Cellar/openjdk@21/21.0.11/libexec/openjdk.jdk/Contents/Home
-> ```
+**Prerequisite:** Maven requires JDK 21. Add to `~/.zshrc`:
 
 ```bash
-# Start infrastructure
+export JAVA_HOME=$(/usr/libexec/java_home -v 21)
+```
+
+```bash
+# Start infrastructure (PostgreSQL, Redis, Kafka, Prometheus, Grafana, Jaeger)
 docker-compose up -d
 
 # Create Kafka topics
@@ -163,8 +185,9 @@ docker exec ledger-kafka kafka-console-consumer \
 
 # Actuator endpoints
 curl http://localhost:8080/actuator/health
-curl http://localhost:8080/actuator/metrics/payment.dlq.received
+curl http://localhost:8080/actuator/metrics/payments.initiated
 curl http://localhost:8080/actuator/scheduledtasks
+curl http://localhost:8080/actuator/prometheus
 ```
 
 ## Key Design Decisions
@@ -191,5 +214,5 @@ curl http://localhost:8080/actuator/scheduledtasks
 - [x] **Phase 5** — Balance Projector + Redis cache-aside + eventual consistency
 - [x] **Phase 6** — Snapshotting + hybrid balance + race condition guard + scheduler
 - [x] **Phase 7** — Hardening: double-spend lock, exception handling, reversal via Kafka, validation, DLQ metrics
-- [ ] **Phase 8** — Observability: Prometheus + Grafana + OpenAPI/Swagger
+- [x] **Phase 8** — Observability: Prometheus + Grafana + Jaeger (OTel tracing) + OpenAPI/Swagger UI
 - [ ] **Phase 9** — Security: JWT auth, rate limiting, multi-currency
