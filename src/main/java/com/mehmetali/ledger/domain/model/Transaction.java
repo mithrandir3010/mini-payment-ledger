@@ -50,6 +50,9 @@ public class Transaction {
 
     private String description;
 
+    @Column(name = "fx_rate", nullable = false, precision = 10, scale = 6)
+    private BigDecimal fxRate = BigDecimal.ONE;
+
     @OneToMany(mappedBy = "transaction", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<LedgerEntry> ledgerEntries = new ArrayList<>();
 

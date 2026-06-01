@@ -1,0 +1,2 @@
+ALTER TABLE transactions
+    ADD COLUMN fx_rate NUMERIC(10, 6) NOT NULL DEFAULT 1.000000;

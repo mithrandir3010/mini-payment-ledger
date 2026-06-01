@@ -68,6 +68,14 @@ public class GlobalExceptionHandler {
         return pd;
     }
 
+    @ExceptionHandler(UnsupportedCurrencyPairException.class)
+    public ProblemDetail handleUnsupportedCurrencyPair(UnsupportedCurrencyPairException ex) {
+        ProblemDetail pd = ProblemDetail.forStatus(HttpStatus.BAD_REQUEST);
+        pd.setType(URI.create("/errors/unsupported-currency-pair"));
+        pd.setDetail(ex.getMessage());
+        return pd;
+    }
+
     @ExceptionHandler(Exception.class)
     public ProblemDetail handleGeneric(Exception ex) {
         log.error("Unhandled exception", ex);

@@ -32,6 +32,7 @@ public class PaymentService {
     private final SnapshotService snapshotService;
     private final PaymentEventProducer eventProducer;
     private final MeterRegistry meterRegistry;
+    private final FxService fxService;
 
     @Transactional
     public Transaction initiatePayment(Transaction transaction) {
@@ -40,9 +41,9 @@ public class PaymentService {
         }
 
         Account from = accountRepository.findById(transaction.getFromAccountId())
-                .orElseThrow(() -> new IllegalArgumentException("Source account not found: " + transaction.getFromAccountId()));
+            .orElseThrow(() -> new IllegalArgumentException("Source account not found: " + transaction.getFromAccountId()));
         Account to = accountRepository.findById(transaction.getToAccountId())
-                .orElseThrow(() -> new IllegalArgumentException("Destination account not found: " + transaction.getToAccountId()));
+            .orElseThrow(() -> new IllegalArgumentException("Destination account not found: " + transaction.getToAccountId()));
 
         if (from.getStatus() != AccountStatus.ACTIVE) {
             throw new IllegalArgumentException("Source account is not active");
@@ -51,25 +52,22 @@ public class PaymentService {
             throw new IllegalArgumentException("Destination account is not active");
         }
         if (!from.getCurrency().equals(transaction.getCurrency())) {
-            throw new IllegalArgumentException(
-                    "Currency mismatch: source account currency is " + from.getCurrency());
-        }
-        if (!to.getCurrency().equals(transaction.getCurrency())) {
-            throw new IllegalArgumentException(
-                    "Currency mismatch: destination account currency is " + to.getCurrency());
+            throw new IllegalArgumentException("Currency mismatch: source account currency is " + from.getCurrency());
         }
 
+        BigDecimal fxRate = fxService.getRate(from.getCurrency(), to.getCurrency());
+        transaction.setFxRate(fxRate);
         transaction.setStatus(TransactionStatus.PENDING);
         transaction.setTransactionType(TransactionType.PAYMENT);
         Transaction saved = transactionRepository.save(transaction);
         audit(saved.getId(), null, TransactionStatus.PENDING, "Payment initiated");
 
         eventProducer.publish(new PaymentEvent(
-                saved.getId(),
-                saved.getFromAccountId(),
-                saved.getToAccountId(),
-                saved.getAmount(),
-                saved.getCurrency()
+            saved.getId(),
+            saved.getFromAccountId(),
+            saved.getToAccountId(),
+            saved.getAmount(),
+            saved.getCurrency()
         ));
 
         return saved;
@@ -92,7 +90,7 @@ public class PaymentService {
     private void processNormalPayment(Transaction tx) {
         // Pessimistic lock on sender — serializes concurrent payments from the same account
         accountRepository.findByIdForUpdate(tx.getFromAccountId())
-                .orElseThrow(() -> new IllegalArgumentException("Source account not found: " + tx.getFromAccountId()));
+            .orElseThrow(() -> new IllegalArgumentException("Source account not found: " + tx.getFromAccountId()));
 
         BigDecimal senderBalance = snapshotService.calculateHybridBalance(tx.getFromAccountId());
         if (senderBalance.compareTo(tx.getAmount()) < 0) {
@@ -107,10 +105,11 @@ public class PaymentService {
     private void processReversal(Transaction tx) {
         // The "to" account is the original receiver — they are debited in the reversal
         accountRepository.findByIdForUpdate(tx.getToAccountId())
-                .orElseThrow(() -> new IllegalArgumentException("Account not found: " + tx.getToAccountId()));
+            .orElseThrow(() -> new IllegalArgumentException("Account not found: " + tx.getToAccountId()));
 
         BigDecimal receiverBalance = snapshotService.calculateHybridBalance(tx.getToAccountId());
-        if (receiverBalance.compareTo(tx.getAmount()) < 0) {
+        BigDecimal debitAmount = tx.getAmount().multiply(tx.getFxRate());
+        if (receiverBalance.compareTo(debitAmount) < 0) {
             transition(tx, TransactionStatus.FAILED, "Insufficient balance for reversal");
             return;
         }
@@ -135,6 +134,7 @@ public class PaymentService {
         reversal.setToAccountId(original.getToAccountId());
         reversal.setAmount(original.getAmount());
         reversal.setCurrency(original.getCurrency());
+        reversal.setFxRate(original.getFxRate());
         reversal.setDescription("Reversal of " + original.getId());
         reversal.setTransactionType(TransactionType.REVERSAL);
         reversal.setOriginalTransactionId(original.getId());
@@ -144,11 +144,11 @@ public class PaymentService {
         audit(saved.getId(), null, TransactionStatus.PENDING, "Reversal initiated for tx: " + original.getId());
 
         eventProducer.publish(new PaymentEvent(
-                saved.getId(),
-                saved.getFromAccountId(),
-                saved.getToAccountId(),
-                saved.getAmount(),
-                saved.getCurrency()
+            saved.getId(),
+            saved.getFromAccountId(),
+            saved.getToAccountId(),
+            saved.getAmount(),
+            saved.getCurrency()
         ));
 
         return saved;
@@ -179,6 +179,6 @@ public class PaymentService {
 
     private Transaction findOrThrow(UUID id) {
         return transactionRepository.findById(id)
-                .orElseThrow(() -> new PaymentNotFoundException(id));
+            .orElseThrow(() -> new PaymentNotFoundException(id));
     }
 }
