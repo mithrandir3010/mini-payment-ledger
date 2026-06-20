@@ -215,4 +215,4 @@ curl http://localhost:8080/actuator/prometheus
 - [x] **Phase 6** — Snapshotting + hybrid balance + race condition guard + scheduler
 - [x] **Phase 7** — Hardening: double-spend lock, exception handling, reversal via Kafka, validation, DLQ metrics
 - [x] **Phase 8** — Observability: Prometheus + Grafana + Jaeger (OTel tracing) + OpenAPI/Swagger UI
-- [ ] **Phase 9** — Security: JWT auth, rate limiting, multi-currency
+- [x] **Phase 9** — Security: API Key auth (X-API-Key, SHA-256 + Redis cache), rate limiting (Bucket4j), account creation, multi-currency FX
