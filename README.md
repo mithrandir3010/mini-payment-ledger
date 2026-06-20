@@ -8,7 +8,7 @@ A production-grade, event-driven payment processing system built as a fintech po
 |---|---|
 | Runtime | Java 21, Spring Boot 3.3 |
 | Messaging | Apache Kafka |
-| Database | PostgreSQL 16 (Flyway migrations V1–V7) |
+| Database | PostgreSQL 16 (Flyway migrations V1–V9) |
 | Cache / Idempotency | Redis 7 |
 | Resilience | Spring Retry, Dead Letter Queue |
 | Observability | Spring Actuator, Micrometer, Prometheus, Grafana, OpenTelemetry |
@@ -99,22 +99,27 @@ Invalid transitions throw `InvalidStateTransitionException` → HTTP 409. All tr
 
 ## API Reference
 
-| Method | Endpoint | Auth Header | Description |
+All endpoints (except `/actuator`, `/swagger-ui`, `/v3/api-docs`) require an `X-API-Key` header. Mutating endpoints additionally require an `Idempotency-Key`.
+
+| Method | Endpoint | Headers | Description |
 |---|---|---|---|
-| `POST` | `/api/v1/payments` | `Idempotency-Key` | Initiate payment — `202 Accepted` |
-| `GET` | `/api/v1/payments/{id}` | — | Get payment status |
-| `POST` | `/api/v1/payments/{id}/reverse` | `Idempotency-Key` | Reverse / refund — `202 Accepted` |
-| `GET` | `/api/v1/accounts/{id}/balance` | — | Hybrid real-time balance |
-| `GET` | `/api/v1/accounts/{id}/ledger` | — | Paginated ledger history |
+| `POST` | `/api/v1/accounts` | `X-API-Key`, `Idempotency-Key` | Create account — `201 Created` |
+| `POST` | `/api/v1/payments` | `X-API-Key`, `Idempotency-Key` | Initiate payment — `202 Accepted` |
+| `GET` | `/api/v1/payments/{id}` | `X-API-Key` | Get payment status |
+| `POST` | `/api/v1/payments/{id}/reverse` | `X-API-Key`, `Idempotency-Key` | Reverse / refund — `202 Accepted` |
+| `GET` | `/api/v1/accounts/{id}/balance` | `X-API-Key` | Hybrid real-time balance |
+| `GET` | `/api/v1/accounts/{id}/ledger` | `X-API-Key` | Paginated ledger history |
 
 ### Error Responses (RFC 9457 Problem Detail)
 
 | HTTP | Trigger |
 |---|---|
-| `400` | Missing required header |
-| `404` | Account or payment not found |
+| `400` | Missing required header · unsupported currency pair |
+| `401` | Missing or invalid `X-API-Key` |
+| `404` | Account or payment not found · self-transfer · currency mismatch |
 | `409` | Invalid state transition |
-| `422` | Validation failure (amount, currency, self-transfer) |
+| `422` | Bean validation failure (amount < 0.01, currency format) |
+| `429` | Rate limit exceeded (60 writes/min, 300 reads/min per API key) |
 
 ## Observability
 
